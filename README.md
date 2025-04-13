@@ -1,94 +1,205 @@
-# 🔐 Secure Messaging API - Backend Coding Challenge
+# Secure Messaging API
 
-This challenge is designed to test your backend skills in API design,
-encryption, debugging, and secure data handling. You are expected to
-think critically, solve problems creatively, and structure your solution
-with best coding practices. You may use either **Express (Node.js)** or
-**Flask (Python)**.
+A NestJS implementation of a secure messaging system with AES-256 encryption.
 
-## ⏱ Time Limit
+## Features
+- Store encrypted messages per user
+- Retrieve decrypted messages for authenticated users
+- Debug endpoint to compare broken vs fixed decryption
+- SQLite database for local development
 
-**1 Hour** --- Please manage your time accordingly.
+## Table of Contents
+1. [Installation](#installation)
+2. [Running the API](#running-the-api)
+3. [API Endpoints](#api-endpoints)
+4. [Testing](#testing)
+5. [Design Decisions](#design-decisions)
+6. [Production Considerations](#production-considerations)
+7. [Postman Collection](#postman-collection)
 
-## 🎯 Objective
+---
 
-Build a secure messaging backend with three main features:
+## Installation
 
-1.  Store encrypted messages per user using secure encryption.
-2.  Allow only the original user to decrypt and retrieve messages.
-3.  Debug a broken decryption function and explain your fix.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-repo/secure-messaging-api.git
+   cd secure-messaging-api
+Install dependencies:
 
-## 📦 Required Endpoints
+bash
+Copy
+npm install
+Set up environment variables (create .env file):
 
-### 1. POST /messages
+env
+Copy
+# Encryption
+ENCRYPTION_ALGORITHM=aes-256-cbc
+ENCRYPTION_IV_LENGTH=16
+ENCRYPT  ION_KEY_LENGTH=32
+ENCRYPTION_SALT=secure-salt-change-me
+Running the API
+Development mode:
 
-Store a message for a user. Encrypt it using AES before storage.
+npm run start:dev
+The API will be available at http://localhost:3000
 
-### 2. GET /messages/:userId
+API Endpoints
+1. Store Message
+POST /messages
 
-Retrieve all messages for the specified user (after decryption).
+json
+{
+  "content": "Your secret message",
+  "userId": "123e4567-e89b-12d3-a456-426614174000" // Must be UUIDv4
+}
+2. Retrieve Messages
+GET /messages/:userId
 
-### 3. POST /debug/decrypt
+Replace :userId with the UUID used during message creation
 
-Debug and fix the broken decryption logic provided in the file
-`debug_code.py` or `debug_code.js`.
+3. Debug Decryption
+POST /debug/decrypt
 
-## 🔐 Encryption Rules
+json
+{
+  "encryptedText": "base64IV:base64Data", // From POST /messages response
+  "userSecret": "same-user-id-used-for-encryption" 
+}
 
--   Use **AES (AES-256)** encryption only.
--   like `pycryptodome` or `crypto-js`.
--   Use only:
-    -   `crypto` module in Node.js
-    -   `cryptography` or built-in `hashlib + hmac` in Python
--   IV must be random per message and embedded in the encrypted payload
-    so it can be extracted and reused for decryption.
--   Return encrypted values in `base64` format.
+Testing
 
-## 🧠 Required Design Write-Up
+Test sequence:
 
-Include this in your README or code comments before implementation:
+POST /messages - Store a message
 
-1.  What encryption method and mode did you choose, and why?
-2.  How will you ensure only the original user can access their
-    messages?
-3.  How do you plan to store and later extract the IV?
-4.  How would you prevent user ID spoofing to access other users\'
-    messages?
+GET /messages/:userId - Retrieve messages
 
-## 🐞 Debug Task
+POST /debug/decrypt - Test decryption
 
-Inside the file `debug_code.py` or `debug_code.js` is a broken function
-`broken_decrypt()`.
+Design Decisions
+Encryption Method
+Algorithm: AES-256-CBC
 
-You must:
+Why:
 
--   Identify and fix the issue.
--   Write a test case that reproduces the problem.
--   Comment your fix explaining what went wrong and why your fix works.
+Industry standard for symmetric encryption
 
-## ✅ Evaluation Criteria
+CBC mode provides better security than ECB
 
--   Correct and working encryption/decryption logic
--   Clean, readable, and modular code structure
--   Secure handling of message data and per-user access
--   Thoughtful answers to the design questions
--   Successful debugging with clear explanation
--   Edge case handling and meaningful error responses
+IV is randomly generated per message
 
-## 🚀 Bonus (Optional)
+Security
+User Access Control:
 
--   Implement message expiry (auto-delete after 10 minutes)
--   Add basic token-based authentication
--   Write unit tests for encryption, storage, and retrieval
+Messages encrypted with user-specific keys
 
-## 📥 Submission
+Even with database access, messages can't be decrypted without the original user ID
 
--   Submit your full project folder via zip or GitHub repository.
--   Include a `README.md` with:
-    -   Instructions to run the project
-    -   Your answers to the design questions
-    -   Any assumptions or constraints you considered
+IV Handling:
 
-**Reminder:** Write professional-grade, clean, and thoughtful code.
-Structure your project clearly and keep logic modular. We\'ll be
-reviewing both code and reasoning.
+Random IV generated per message
+
+Stored as base64Iv:base64Data format
+
+Anti-Spoofing:
+
+Authentication guard verifies requests
+
+In production: JWT with user ID claim
+
+Production Considerations
+Recommended Improvements
+Database:
+
+Switch to PostgreSQL/MySQL
+
+Implement proper migrations
+
+Disable synchronize in production
+
+Security:
+
+Add JWT authentication
+
+Implement rate limiting
+
+Use HTTPS
+
+Rotate encryption keys periodically
+
+Performance:
+
+Add caching layer
+
+Implement connection pooling
+
+Add message pagination
+
+Monitoring:
+
+Health checks
+
+Request logging
+
+Performance metrics
+
+Postman Collection
+Collection JSON
+json
+Copy
+{
+  "info": {
+    "name": "Secure Messaging API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Store Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Test message\",\n  \"userId\": \"{{testUserId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/messages",
+          "host": ["{{baseUrl}}"],
+          "path": ["messages"]
+        }
+      }
+    },
+    {
+      "name": "Get Messages",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/messages/{{testUserId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["messages", "{{testUserId}}"]
+        }
+      }
+    }
+  ]
+}
+Test Data
+json
+{
+  "testMessages": [
+    {
+      "content": "First test message",
+      "userId": "123e4567-e89b-12d3-a456-426614174000"
+    },
+    {
+      "content": "Second test message",
+      "userId": "123e4567-e89b-12d3-a456-426614174000"
+    }
+  ]
+}
